@@ -1,0 +1,255 @@
+unsigned long delaytijd = 100;
+int sensorPin = A0;
+int sensorValue;
+int Red = 22;   //pin nummer red
+int Green = 24; //pin nummer green
+int Blue = 26;  //pin nummer blue
+int White = 28; //pin nummer white
+
+int outRed = 52;
+int outGreen = 50;
+int outBlue = 48;
+
+int vRed = 0;   //value red
+int vGreen = 0; //value green
+int vBlue = 0;  //value blue
+int vWhite = 0; //value white
+
+int inColour1Saved = 0;
+int inColour2Saved = 0;
+int inColour1SavedDelay = 0;
+int inColour2SavedDelay = 0;
+
+int confirmedRed = 0;
+int confirmedGreen = 0;
+int confirmedBlue = 0;
+int confirmedWhite = 0;
+
+int outConfirm = 2;
+int outMetal = 3;
+int outFlush = 4;
+
+int inColour1 = 30;
+int inColour2 = 32;
+int inMetal = 34;
+
+unsigned long tOld = millis();
+byte tDelay=40; //tijd tussen metingen
+byte count=0;
+
+
+void setup() {
+  pinMode(Red, OUTPUT); //Red
+  pinMode(Green, OUTPUT); //Green
+  pinMode(Blue, OUTPUT); //Blue
+  pinMode(White, OUTPUT); //White
+  pinMode(outRed, OUTPUT); //output red
+  pinMode(outGreen, OUTPUT); //output green
+  pinMode(outBlue, OUTPUT); //output green
+  pinMode(outConfirm, OUTPUT);
+  pinMode(outMetal, OUTPUT);
+  pinMode(outFlush, OUTPUT);
+  pinMode(inColour1, INPUT_PULLUP); //input colour1
+  pinMode(inColour2, INPUT_PULLUP); //input colour2
+  pinMode(inMetal, INPUT_PULLUP); //input metal
+  Serial.begin(9600);
+  
+}
+
+void loop() 
+{
+
+  if (millis() >= (tOld + tDelay))
+  {
+    tOld = millis();
+    
+    switch(count)
+    {
+      case 0:
+      sensorValue = analogRead(sensorPin);
+      Serial.print("W = ");
+      Serial.println(sensorValue);
+      vWhite = sensorValue;
+      Serial.println( );
+      
+      digitalWrite(White,LOW);
+      digitalWrite(Red,HIGH);
+      break;
+      
+      case 1:
+      sensorValue = analogRead(sensorPin);
+      Serial.print("R = ");
+      Serial.println(sensorValue);
+      vRed = sensorValue;
+      
+      digitalWrite(Red,LOW);
+      digitalWrite(Green,HIGH);
+      break;
+
+      case 2:
+      sensorValue = analogRead(sensorPin);
+      Serial.print("G = ");
+      Serial.println(sensorValue);
+      vGreen = sensorValue;
+      
+      digitalWrite(Green,LOW);
+      digitalWrite(Blue,HIGH);
+      break;
+
+      case 3:
+      sensorValue = analogRead(sensorPin);
+      Serial.print("B = ");
+      Serial.println(sensorValue);
+      vBlue = sensorValue;
+      
+      digitalWrite(Blue,LOW);
+      digitalWrite(White,HIGH);
+      break;
+    }
+    if(count<3)
+    {
+      count++;
+    }
+    else
+    {
+      count=0;
+    }
+  }    
+//--------------------------------------------------analyzing waardes klueren
+    if (count == 3)
+    {
+      if (vRed < 590 && vRed > 520 && vGreen < 860 && vGreen > 785 && vBlue < 870 && vBlue > 800 && vWhite < 670 && vWhite > 595)
+      {
+        Serial.println("rood");
+        digitalWrite(outRed,HIGH);
+        confirmedRed = 1;
+      }
+      else
+      {
+        digitalWrite(outRed,LOW);
+        confirmedRed = 0;
+      }
+      
+      if (vRed < 840 && vRed > 755 && vGreen < 800 && vGreen > 745 && vBlue < 870 && vBlue > 800 && vWhite < 740 && vWhite > 670)
+      {
+        Serial.println("groen");
+        digitalWrite(outGreen,HIGH);
+        confirmedGreen = 1;
+      }
+      else
+      {
+        digitalWrite(outGreen,LOW);
+        confirmedGreen = 0;
+      }
+      
+      if (vRed < 825 && vRed > 770 && vGreen < 835 && vGreen > 780 && vBlue < 825 && vBlue > 780 && vWhite < 760 && vWhite > 700)
+      {
+        Serial.println("blauw");
+        digitalWrite(outBlue,HIGH);
+        confirmedBlue = 1;
+      }
+      else
+      {
+        digitalWrite(outBlue,LOW);
+        confirmedBlue = 0;
+      }
+      if (vRed < 540 && vRed > 475 && vGreen < 670 && vGreen > 610 && vBlue < 765 && vBlue > 705 && vWhite < 465 && vWhite > 405)
+      {
+        Serial.println("wit");
+        digitalWrite(outRed,HIGH);
+        digitalWrite(outGreen,HIGH);
+        digitalWrite(outBlue,HIGH);
+        confirmedWhite = 1;
+      }
+      else
+      {
+        confirmedWhite = 0;
+      }
+    }
+    
+//-------------------------------------------------------output outConfirm
+
+    if (digitalRead(inColour1) == LOW && digitalRead(inColour2) == LOW && confirmedRed == 1) // 0 0 = rood
+    {
+      digitalWrite(outConfirm,LOW);
+    }
+    else if (digitalRead(inColour1) ==  HIGH && digitalRead(inColour2) == LOW && confirmedGreen == 1) // 0 1 = groen
+    {
+      digitalWrite(outConfirm,LOW);
+    }
+    else if (digitalRead(inColour1) == LOW && digitalRead(inColour2) ==  HIGH && confirmedWhite == 1) // 1 0 = wit
+    {
+      digitalWrite(outConfirm,LOW);
+    }
+    else if (digitalRead(inColour1) == HIGH && digitalRead(inColour2) == HIGH && confirmedBlue == 1) // 1 1 = blauw
+    {
+      digitalWrite(outConfirm,LOW);
+    }
+    else
+    {
+      digitalWrite(outConfirm,HIGH);
+    }
+//-------------------------------------------------------Flush
+    if (digitalRead(inColour1) == HIGH)
+    {
+      inColour1Saved = 1;
+    }
+    else
+    {
+      inColour1Saved = 0;
+    }
+    
+    if (digitalRead(inColour2) == HIGH)
+    {
+      inColour2Saved = 1;
+    }
+    else
+    {
+      inColour2Saved = 0;
+    }
+    
+    
+    
+    if (inColour1Saved != inColour1SavedDelay || inColour2Saved != inColour2SavedDelay)
+    {
+      digitalWrite(outFlush,LOW);
+      delay(300);
+    }
+    else if(inColour1Saved == inColour1SavedDelay || inColour2Saved == inColour2SavedDelay)
+    {      digitalWrite(outFlush,HIGH);
+      
+    }
+    
+    
+    
+    if (digitalRead(inColour1) == HIGH)
+    {
+      inColour1SavedDelay = 1;
+    }
+    else
+    {
+      inColour1SavedDelay = 0;
+    }
+    
+    if (digitalRead(inColour2) == HIGH)
+    {
+      inColour2SavedDelay = 1;
+    }
+    else
+    {
+      inColour2SavedDelay = 0;
+    }
+    
+    
+//-------------------------------------------------------output outMetal    
+
+    if (digitalRead(inMetal)== HIGH)
+    {
+      digitalWrite(outMetal,HIGH);
+    }
+    else
+    {
+      digitalWrite(outMetal,LOW);
+    }
+    
+}
